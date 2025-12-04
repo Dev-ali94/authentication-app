@@ -1,8 +1,7 @@
-const  User =require('../models/UserModel')
-
+const User = require("../models/UserModel")
 exports.getUserData = async (req, res) => {
   try {
-    const userId = req.userId; // ✅ get from middleware
+    const userId = req.user.id;  // get it from req.user
     const user = await User.findById(userId);
 
     if (!user) {
@@ -12,6 +11,7 @@ exports.getUserData = async (req, res) => {
     res.json({
       success: true,
       userData: {
+        id:user._id,
         name: user.name,
         email: user.email,
         verified: user.verified,

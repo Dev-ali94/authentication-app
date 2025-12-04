@@ -48,106 +48,118 @@ if (userExist) {
   return res.json({ success: false, message: "Registration error, please try again" });
   }
 };
-// verfication of email
-exports.verification = async (req, res) => {
-  const { userId, otp } = req.body;
-  // check userid or otp
-  if (!userId || !otp) {
-    return res.json({ success: false, message: "User ID and OTP are required" });
-  }
+// Verify OTP
+exports.verifyEmail = async (req, res) => {
   try {
-    // check user exist 
-    const user = await User.findById(userId);
+    const { otp } = req.body
+    if (!otp) {
+      return res.json({ 
+        success: false, 
+        message: "OTP is required" 
+      })
+    }
+
+    // Get user from token (assuming you have auth middleware)
+    const token = req.cookies.token || req.headers.authorization?.split(" ")[1]
+    
+    if (!token) {
+      return res.json({ 
+        success: false, 
+        message: "Authentication required" 
+      })
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+    const user = await User.findById(decoded.id)
+
     if (!user) {
-      return res.json({ success: false, message: "User not found" });
+      return res.json({ 
+        success: false, 
+        message: "User not found" 
+      })
     }
-    // check user otp is match by database otp
-    if (!user.otp || user.otp !== otp) {
-      return res.json({ success: false, message: "Invalid OTP" });
+
+    // Check if OTP matches
+    if (user.otp !== otp) {
+      return res.json({ 
+        success: false, 
+        message: "Invalid OTP" 
+      })
     }
-    // check otp is expire or not
-    if (user.expireOtp < new Date()) {
-      return res.json({ success: false, message: "OTP has expired" });
+
+    // Check if OTP is expired
+    if (user.otpExpiry < Date.now()) {
+      return res.json({ 
+        success: false, 
+        message: "OTP has expired" 
+      })
     }
-    // Mark user as verified
-    user.verified = true;
-    user.otp = "";
-    user.expireOtp = null;
-    await user.save();
-    // set response for user
-    return res.json({ success: true, message: "Account verified successfully" });
+
+    // Update user as verified
+    user.verified = true
+    user.otp = undefined
+    user.otpExpiry = undefined
+    await user.save()
+
+    res.json({
+      success: true,
+      message: "Email verified successfully!"
+    })
+
   } catch (error) {
-    console.error("Verification error:", error.message);
-    res.json({ error: "Verification error, please try again" });
+    console.error("Verification error:", error.message)
+    res.json({ 
+      success: false, 
+      message: "Verification failed" 
+    })
   }
-};
-// resend otp if otp expire 
+}
+// Resend OTP
 exports.resendOTP = async (req, res) => {
   try {
-    const { userId } = req.body;
-    // Validate userId
-    if (!userId) {
-      return res.json({
-        success: false,
-        message: "User ID is required",
-      });
+    const token = req.cookies.token || req.headers.authorization?.split(" ")[1]
+    
+    if (!token) {
+      return res.json({ 
+        success: false, 
+        message: "Authentication required" 
+      })
     }
-    // Check user exists
-    const user = await User.findById(userId);
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+    const user = await User.findById(decoded.id)
+
     if (!user) {
-      return res.json({
-        success: false,
-        message: "User not found",
-      });
-    }
-    // If already verified, don’t send OTP
-    if (user.verified) {
-      return res.json({
-        success: false,
-        message: "Account already verified",
-      });
-    }
-    const now = new Date();
-    const startOfDay = new Date(now.setHours(0, 0, 0, 0));
-
-    // Restrict max 3 OTP per day
-    if (user.otpSendCount >= 3 && user.lastOtpSent >= startOfDay) {
-      return res.json({
-        success: false,
-        message: "Maximum OTP attempts reached for today",
-        nextAvailable: new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000), // next day
-      });
+      return res.json({ 
+        success: false, 
+        message: "User not found" 
+      })
     }
 
-    // Generate fresh OTP
-    const newOtp = crypto.randomInt(100000, 999999).toString();
-    const expireOtp = new Date(Date.now() + 10 * 60 * 1000); // 10 min validity
+    // Generate new OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString()
+    const otpExpiry = Date.now() + 10 * 60 * 1000 // 10 minutes
 
-    // Update user OTP fields
-    user.otp = newOtp;
-    user.expireOtp = expireOtp;
-    user.otpSendCount = user.lastOtpSent >= startOfDay ? user.otpSendCount + 1 : 1;
-    user.lastOtpSent = now;
+    user.otp = otp
+    user.otpExpiry = otpExpiry
+    await user.save()
 
-    await user.save();
+    // Send OTP via email (implement your email service here)
+    // sendEmail(user.email, otp)
 
-    // Send OTP via email (email is taken from DB, not user input)
-    await sendOtp(user.email, newOtp);
-
-    return res.json({
-      success: true,
-      message: "New OTP sent successfully",
-      email: user.email,
-      attemptsRemaining: 3 - user.otpSendCount,
-    });
-  } catch (error) {
-    console.error("Resend OTP error:", error.message);
     res.json({
-      success: false,
-      message: "Failed to resend OTP",
-    });
+      success: true,
+      message: "New OTP sent to your email!"
+    })
+
+  } catch (error) {
+    console.error("Resend OTP error:", error.message)
+    res.json({ 
+      success: false, 
+      message: "Failed to resend OTP" 
+    })
   }
-};
+}
 // User login
 exports.login = async (req, res) => {
   const { email, password } = req.body;

@@ -4,7 +4,7 @@ const UserController = require('../controller/AuthController.js')
 const router = express.Router();
 
 router.post("/register", UserController.registration)
-router.post("/verify", userAuth, UserController.verification)
+router.post("/verify", userAuth, UserController.verifyEmail)
 router.post("/resend-otp", userAuth, UserController.resendOTP)
 router.get("/auth",userAuth ,UserController.isAuthenticated)
 router.post("/forget-password", UserController.forgetPassword)

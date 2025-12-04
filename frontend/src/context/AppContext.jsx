@@ -1,53 +1,58 @@
-import axios from "axios";
-import { createContext, useEffect, useState } from "react";
-import { toast } from "react-toastify";
+import axios from "axios"
+import { createContext, useEffect, useState } from "react"
+import { toast } from "react-toastify"
 
-export const AppContext = createContext();
+export const AppContext = createContext()
 
 export const AppContextProvider = (props) => {
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userData, setUserData] = useState(null);
+  const backendUrl = import.meta.env.VITE_BACKEND_URL
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [userData, setUserData] = useState(null)
+  const [authLoading, setAuthLoading] = useState(true)
 
   // 🔑 Check auth state
   const getAuthState = async () => {
     try {
       const { data } = await axios.get(`${backendUrl}/api/auth/auth`, {
-        withCredentials: true, // ✅ send cookies/token
-      });
+        withCredentials: true,
+      })
 
       if (data.success) {
-        setIsLoggedIn(true);
-        getUserData(); // fetch user details
-      } 
+        setIsLoggedIn(true)
+        await getUserData()
+      } else {
+        setIsLoggedIn(false)
+        setUserData(null)
+      }
     } catch (error) {
-      toast.error(error.response?.data?.message || error.message);
+      setIsLoggedIn(false)
+      setUserData(null)
+    } finally {
+      setAuthLoading(false)
     }
-  };
+  }
 
   // 👤 Fetch user data
   const getUserData = async () => {
     try {
       const { data } = await axios.get(`${backendUrl}/api/user/data`, {
-        withCredentials: true, // ✅ send cookies/token
-      });
+        withCredentials: true,
+      })
 
       if (data.success) {
-        setUserData(data.userData);
+        setUserData(data.userData)
       } else {
-        toast.error(data.message);
-        setUserData(null);
+        setUserData(null)
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || error.message);
-      setUserData(null);
+      setUserData(null)
     }
-  };
+  }
 
   // 🚀 Run on page load
   useEffect(() => {
-    getAuthState();
-  }, []);
+    getAuthState()
+  }, [])
 
   const value = {
     backendUrl,
@@ -56,11 +61,12 @@ export const AppContextProvider = (props) => {
     userData,
     setUserData,
     getUserData,
-  };
+    authLoading,
+  }
 
   return (
     <AppContext.Provider value={value}>
       {props.children}
     </AppContext.Provider>
-  );
-};
+  )
+}

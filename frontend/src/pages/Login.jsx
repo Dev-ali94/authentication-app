@@ -10,39 +10,50 @@ const Login = () => {
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
   const [email, setEmail] = useState('')
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
-const { backendUrl, setIsLoggedIn, getUserData } = useContext(AppContext);
+  const { backendUrl, setIsLoggedIn, getUserData } = useContext(AppContext)
 
-const onSubmitHandler = async (e) => {
-  e.preventDefault();
-  try {
-    axios.defaults.withCredentials = true;
-    let data;
-    if (state === "Sign Up") {
-      ({ data } = await axios.post(`${backendUrl}/api/auth/register`, {
-        name,
-        email,
-        password,
-      }));
-    } else {
-      ({ data } = await axios.post(`${backendUrl}/api/auth/login`, {
-        email,
-        password,
-      }));
-    }
+  const onSubmitHandler = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    
+    try {
+      axios.defaults.withCredentials = true
+      let data
+      
+      if (state === "Sign Up") {
+        ({ data } = await axios.post(`${backendUrl}/api/auth/register`, {
+          name,
+          email,
+          password,
+        }))
+      } else {
+        ({ data } = await axios.post(`${backendUrl}/api/auth/login`, {
+          email,
+          password,
+        }))
+      }
 
-    if (data.success) {
-      setIsLoggedIn(true);
-      await getUserData(); // ✅ fetch user info right after login
-      navigate("/verify-email");
-    } else {
-      toast.error(data.message);
+      if (data.success) {
+        setIsLoggedIn(true)
+        await getUserData() // Wait for user data to load
+        
+        if (data.userData?.verified) {
+          navigate("/")
+        } else {
+          navigate("/verify-email")
+        }
+      } else {
+        toast.error(data.message)
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message)
+    } finally {
+      setLoading(false)
     }
-  } catch (error) {
-    toast.error(error.response?.data?.message || error.message);
   }
-};
 
   return (
     <div className="flex items-center justify-center min-h-screen px-6 sm:px-0 bg-gradient-to-br from-gray-900 via-purple-900 to-indigo-900">
@@ -53,7 +64,6 @@ const onSubmitHandler = async (e) => {
             : 'Login in to your account!'}
         </h2>
 
-        {/* ✅ removed stray form attribute */}
         <form onSubmit={onSubmitHandler} className="flex flex-col space-y-4">
           {state === 'Sign Up' && (
             <div className="flex items-center gap-3 px-4 py-2.5 rounded-full w-full bg-gray-900/70 focus-within:ring-2 focus-within:ring-indigo-500 transition">
@@ -68,6 +78,7 @@ const onSubmitHandler = async (e) => {
                 type="text"
                 placeholder="Full Name"
                 className="flex-1 outline-none bg-transparent text-white placeholder-gray-400 text-sm"
+                required
               />
             </div>
           )}
@@ -84,6 +95,7 @@ const onSubmitHandler = async (e) => {
               type="email"
               placeholder="Email Id"
               className="flex-1 outline-none bg-transparent text-white placeholder-gray-400 text-sm"
+              required
             />
           </div>
 
@@ -99,21 +111,23 @@ const onSubmitHandler = async (e) => {
               type="password"
               placeholder="Password"
               className="flex-1 outline-none bg-transparent text-white placeholder-gray-400 text-sm"
+              required
             />
           </div>
 
           <p
             onClick={() => navigate('/reset-password')}
-            className="text-white text-sm font-medium cursor-pointer"
+            className="text-white text-sm font-medium cursor-pointer hover:text-indigo-300 transition"
           >
             Forget Password?
           </p>
 
           <button
             type="submit"
-            className="w-full py-2.5 rounded-full text-white font-medium bg-gradient-to-r from-indigo-500 to-indigo-900"
+            disabled={loading}
+            className={`w-full py-2.5 rounded-full text-white font-medium bg-gradient-to-r from-indigo-500 to-indigo-900 ${loading ? 'opacity-70 cursor-not-allowed' : 'hover:opacity-90'}`}
           >
-            {state}
+            {loading ? 'Processing...' : state}
           </button>
 
           {state === 'Sign Up' ? (
@@ -121,7 +135,7 @@ const onSubmitHandler = async (e) => {
               Already have an account?{' '}
               <span
                 onClick={() => setState('Login')}
-                className="text-sm font-bold text-blue-400 cursor-pointer"
+                className="text-sm font-bold text-blue-400 cursor-pointer hover:text-blue-300 transition"
               >
                 Login here
               </span>
@@ -131,7 +145,7 @@ const onSubmitHandler = async (e) => {
               Don&apos;t have an account?{' '}
               <span
                 onClick={() => setState('Sign Up')}
-                className="text-sm font-bold text-blue-400 cursor-pointer"
+                className="text-sm font-bold text-blue-400 cursor-pointer hover:text-blue-300 transition"
               >
                 Sign up
               </span>
