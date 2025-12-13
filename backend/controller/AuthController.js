@@ -58,8 +58,6 @@ exports.verifyEmail = async (req, res) => {
         message: "OTP is required" 
       })
     }
-
-    // Get user from token (assuming you have auth middleware)
     const token = req.cookies.token || req.headers.authorization?.split(" ")[1]
     
     if (!token) {
@@ -68,7 +66,6 @@ exports.verifyEmail = async (req, res) => {
         message: "Authentication required" 
       })
     }
-
     const decoded = jwt.verify(token, process.env.JWT_SECRET)
     const user = await User.findById(decoded.id)
 

@@ -90,7 +90,7 @@ const EmailVerify = () => {
       
       if (data.success) {
         toast.success(data.message)
-        await getUserData() // Refresh user data
+        await getUserData() 
         navigate("/")
       } else {
         toast.error(data.message)

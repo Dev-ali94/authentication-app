@@ -7,8 +7,8 @@ const app = express();
 app.use(cookieParser());
 app.use(express.json());
 app.use(cors({
-  origin: "http://localhost:5173",  // ✅ exact frontend origin
-  credentials: true                 // ✅ allow cookies, tokens
+  origin: process.env.FRONTEND_URL, 
+  credentials: true                 
 }));
 app.use('/api/auth', AuthRoutes);
 app.use('/api/user', userRoutes );

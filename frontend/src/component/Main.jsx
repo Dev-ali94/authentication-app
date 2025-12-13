@@ -1,9 +1,11 @@
 import React, { useContext } from 'react'
 import {assets} from '../assets/assets'
 import { AppContext } from '../context/AppContext'
+import { useNavigate } from 'react-router-dom'
 
 const Main = () => {
   const {userData}=useContext(AppContext)
+  const navigate =useNavigate()
   return (
 <div className="flex flex-col justify-center items-center mt-20 p-6">
   <div className="relative z-10 flex flex-col items-center  text-white">
@@ -20,8 +22,8 @@ const Main = () => {
       WELCOME TO MY APP
     </h1>
     </div>
-      <button className='border border-white text-white font-semibold 
-                    rounded-full px-6 py-2 hover:bg-white hover:text-gray-900 transition-all shadow-md cursor-pointer'>Get Started</button>
+      <button onClick={() => navigate("/login")} className='border border-white text-white font-semibold 
+      rounded-full px-6 py-2 hover:bg-white hover:text-gray-900 transition-all shadow-md cursor-pointer'>Get Started</button>
   </div>
 </div>
 
