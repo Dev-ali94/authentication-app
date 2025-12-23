@@ -1,23 +1,22 @@
 const jwt = require("jsonwebtoken");
+const User = require("../models/UserModel")
 
 const userAuth = async (req, res, next) => {
-  const { token } = req.cookies;
-
-  if (!token) {
-    return res.json({ success: false, message: "Not Authorized, login again" });
-  }
-
-  try {
-    const tokenDecode = jwt.verify(token, process.env.JWT_SECRET);
-    if (tokenDecode.id) {
-      req.user = { id: tokenDecode.id };
-      next();
-    } else {
-      res.json({ success: false, message: "Login Again" });
+    try {
+        const token = req.cookies.token
+        if (!token) {
+            return res.status(401).json({success: false,message: "Not authenticated"})
+        }
+        const decoded = jwt.verify(token, process.env.JWT_SECRET)
+        const user = await User.findById(decoded.id)
+        if (!user) {
+            return res.status(401).json({success: false,message: "User not found"})
+        }
+        req.user = user
+        next()
+    } catch (error) {
+        return res.status(500).json({success: false,message: "Internal server error"})
     }
-  } catch (error) {
-    res.json({ success: false, message: error.message });
-  }
-};
+}
 
-module.exports = userAuth;
+module.exports = userAuth
